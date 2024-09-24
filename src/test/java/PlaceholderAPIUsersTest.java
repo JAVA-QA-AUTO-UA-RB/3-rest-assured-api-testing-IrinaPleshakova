@@ -1,36 +1,38 @@
+import io.restassured.RestAssured;
+import org.example.models.User;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import io.restassured.response.Response;
 
-
 public class PlaceholderAPIUsersTest extends BaseTest {
 
-    @Test(groups = {"smoke", "regression"})
-    public void testGetUserById() {
-        Response response = requestSpec.when()
-                .get("/users/1")
-                .then()
-                .extract().response();
+@Test(groups = {"smoke", "regression"})
+public void testGetUserById() {
+    User user = RestAssured.given(requestSpec)
+            .when()
+            .get("/users/1")
+            .then()
+            .statusCode(200)
+            .extract().as(User.class);
 
-        Assert.assertEquals(response.getStatusCode(), 200);
-        Assert.assertEquals(response.jsonPath().getInt("id"), 1);
-        Assert.assertNotNull(response.jsonPath().getString("username"));
-        Assert.assertNotNull(response.jsonPath().getString("email"));
-    }
+    Assert.assertEquals(user.getId(), 1);
+    Assert.assertNotNull(user.getUsername());
+    Assert.assertNotNull(user.getEmail());
+}
 
     @Test(groups = "regression")
     public void testGetUserByUsername() {
-        Response response = requestSpec.queryParam("username", "Bret")
+        User[] users = RestAssured.given(requestSpec)
+                .queryParam("username", "Bret")
                 .when()
                 .get("/users")
                 .then()
-                .extract().response();
+                .statusCode(200)
+                .extract().as(User[].class);
 
-        Assert.assertEquals(response.getStatusCode(), 200);
-        Assert.assertEquals(response.jsonPath().getString("[0].username"), "Bret");
-        Assert.assertNotNull(response.jsonPath().getString("email"));
+        Assert.assertEquals(users[0].getUsername(), "Bret");
+        Assert.assertNotNull(users[0].getEmail());
     }
-
 }
 
 

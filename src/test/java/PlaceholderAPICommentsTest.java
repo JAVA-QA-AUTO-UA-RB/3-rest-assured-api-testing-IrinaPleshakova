@@ -1,33 +1,40 @@
+import io.restassured.RestAssured;
+import org.example.models.Comment;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import io.restassured.response.Response;
-
 
 public class PlaceholderAPICommentsTest extends BaseTest {
 
     @Test(groups = {"smoke", "regression"})
     public void testGetCommentById() {
-        Response response = requestSpec.when()
+        Comment comment = RestAssured.given(requestSpec)
+                .when()
                 .get("/comments/1")
                 .then()
-                .extract().response();
+                .statusCode(200)
+                .extract().as(Comment.class);
 
-        Assert.assertEquals(response.getStatusCode(), 200);
-        Assert.assertNotNull(response.jsonPath().getString("name"));
+        Assert.assertNotNull(comment.getName());
+        Assert.assertEquals(comment.getId(), 1);
+        Assert.assertNotNull(comment.getBody());
     }
 
     @Test(groups = "regression")
     public void testGetCommentsByPostId() {
-        Response response = requestSpec.queryParam("postId", 1)
+        Comment[] comments = RestAssured.given(requestSpec)
+                .queryParam("postId", 1)
                 .when()
                 .get("/comments")
                 .then()
-                .extract().response();
+                .statusCode(200)
+                .extract().as(Comment[].class);
 
-        Assert.assertEquals(response.getStatusCode(), 200);
-        Assert.assertTrue(response.jsonPath().getList("$").size() > 0);
+        Assert.assertTrue(comments.length > 0);
+        for (Comment comment : comments) {
+            Assert.assertEquals(comment.getPostId(), 1);
+        }
     }
-
 }
 
 

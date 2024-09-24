@@ -1,66 +1,81 @@
+import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import org.example.models.Post;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
 public class PlaceholderAPIPostsTest extends BaseTest {
 
-    // Під словом "Post" в назвах методів мається на увазі назва ресурсу (не плутати з HTTP методом POST
     @Test(groups = {"smoke", "regression"})
     public void testGetPost() {
-        Response response = requestSpec.when()
+        Post post = RestAssured.given(requestSpec)
+                .when()
                 .get("/posts/1")
                 .then()
-                .extract().response();
+                .statusCode(200)
+                .extract().as(Post.class);
 
-        Assert.assertEquals(response.getStatusCode(), 200);
-        Assert.assertEquals(response.jsonPath().getInt("id"), 1);
-        Assert.assertNotNull(response.jsonPath().getString("title"));
-        Assert.assertNotNull(response.jsonPath().getString("body"));
+        Assert.assertEquals(post.getId(), 1);
+        Assert.assertNotNull(post.getTitle());
+        Assert.assertNotNull(post.getBody());
     }
 
     @Test(groups = "regression")
     public void testCreatePost() {
-        String newPostJson = "{\"title\":\"foo\",\"body\":\"bar\",\"userId\":1}";
+        Post newPost = new Post();
+        newPost.setTitle("New Title");
+        newPost.setBody("New body content");
+        newPost.setUserId(1);
 
-        Response response = requestSpec.body(newPostJson)
+        Post createdPost = RestAssured.given(requestSpec)
+                .body(newPost)
                 .when()
                 .post("/posts")
                 .then()
-                .extract().response();
+                .statusCode(201)
+                .extract().as(Post.class);
 
-        Assert.assertEquals(response.getStatusCode(), 201);
-        Assert.assertNotNull(response.jsonPath().getInt("id"));
-        Assert.assertEquals(response.jsonPath().getString("title"), "foo");
-        Assert.assertEquals(response.jsonPath().getString("body"), "bar");
+        Assert.assertNotNull(createdPost.getId());
+        Assert.assertEquals(createdPost.getTitle(), newPost.getTitle());
+        Assert.assertEquals(createdPost.getBody(), newPost.getBody());
     }
 
     @Test(groups = "regression")
     public void testUpdatePost() {
-        String updatedPostJson = "{\"id\":1,\"title\":\"updated title\",\"body\":\"updated body\",\"userId\":1}";
+        Post updatedPost = new Post();
+        updatedPost.setId(1);
+        updatedPost.setTitle("Updated Title");
+        updatedPost.setBody("Updated body content");
+        updatedPost.setUserId(1);
 
-        Response response = requestSpec.body(updatedPostJson)
+        Post responsePost = RestAssured.given(requestSpec)
+                .body(updatedPost)
                 .when()
                 .put("/posts/1")
                 .then()
-                .extract().response();
+                .statusCode(200)
+                .extract().as(Post.class);
 
-        Assert.assertEquals(response.getStatusCode(), 200);
-        Assert.assertEquals(response.jsonPath().getString("title"), "updated title");
-        Assert.assertEquals(response.jsonPath().getString("body"), "updated body");
+        Assert.assertEquals(responsePost.getTitle(), updatedPost.getTitle());
+        Assert.assertEquals(responsePost.getBody(), updatedPost.getBody());
     }
 
     @Test(groups = "regression")
     public void testDeletePost() {
-        Response response = requestSpec
+        RestAssured.given(requestSpec)
                 .when()
                 .delete("/posts/1")
                 .then()
-                .extract().response();
+                .statusCode(200);
 
-        Assert.assertEquals(response.getStatusCode(), 200);
-        Response getResponse = requestSpec.when().get("/posts/1");
-        Assert.assertEquals(getResponse.getStatusCode(), 404);
+        // Повторно запрашиваем ресурс, ожидая, что он все еще доступен, так как это фейковое API
+        int statusCode = RestAssured.given(requestSpec)
+                .when()
+                .get("/posts/1")
+                .statusCode();
+
+        // Проверяем, что ресурс все еще существует, так как API не удаляет реальные данные
+        Assert.assertEquals(statusCode, 200, "Ресурс все еще доступен, так как API не удаляет данные по-настоящему.");
     }
 }
 
