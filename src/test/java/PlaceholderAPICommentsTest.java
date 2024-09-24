@@ -1,19 +1,21 @@
-import io.restassured.RestAssured;
+import org.example.clients.CommentsClient;
 import org.example.models.Comment;
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-import io.restassured.response.Response;
 
 public class PlaceholderAPICommentsTest extends BaseTest {
 
+    private CommentsClient commentsClient;
+
+    @BeforeClass
+    public void setup() {
+        commentsClient = new CommentsClient(requestSpec);
+    }
+
     @Test(groups = {"smoke", "regression"})
     public void testGetCommentById() {
-        Comment comment = RestAssured.given(requestSpec)
-                .when()
-                .get("/comments/1")
-                .then()
-                .statusCode(200)
-                .extract().as(Comment.class);
+        Comment comment = commentsClient.getCommentById(1);
 
         Assert.assertNotNull(comment.getName());
         Assert.assertEquals(comment.getId(), 1);
@@ -22,13 +24,7 @@ public class PlaceholderAPICommentsTest extends BaseTest {
 
     @Test(groups = "regression")
     public void testGetCommentsByPostId() {
-        Comment[] comments = RestAssured.given(requestSpec)
-                .queryParam("postId", 1)
-                .when()
-                .get("/comments")
-                .then()
-                .statusCode(200)
-                .extract().as(Comment[].class);
+        Comment[] comments = commentsClient.getCommentsByPostId(1);
 
         Assert.assertTrue(comments.length > 0);
         for (Comment comment : comments) {
@@ -36,5 +32,3 @@ public class PlaceholderAPICommentsTest extends BaseTest {
         }
     }
 }
-
-

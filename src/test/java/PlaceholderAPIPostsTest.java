@@ -1,19 +1,21 @@
-import io.restassured.RestAssured;
-import io.restassured.response.Response;
+import org.example.clients.PostsClient;
 import org.example.models.Post;
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class PlaceholderAPIPostsTest extends BaseTest {
 
+    private PostsClient postsClient;
+
+    @BeforeClass
+    public void setup() {
+        postsClient = new PostsClient(requestSpec);
+    }
+
     @Test(groups = {"smoke", "regression"})
     public void testGetPost() {
-        Post post = RestAssured.given(requestSpec)
-                .when()
-                .get("/posts/1")
-                .then()
-                .statusCode(200)
-                .extract().as(Post.class);
+        Post post = postsClient.getPostById(1);
 
         Assert.assertEquals(post.getId(), 1);
         Assert.assertNotNull(post.getTitle());
@@ -27,13 +29,7 @@ public class PlaceholderAPIPostsTest extends BaseTest {
         newPost.setBody("New body content");
         newPost.setUserId(1);
 
-        Post createdPost = RestAssured.given(requestSpec)
-                .body(newPost)
-                .when()
-                .post("/posts")
-                .then()
-                .statusCode(201)
-                .extract().as(Post.class);
+        Post createdPost = postsClient.createPost(newPost);
 
         Assert.assertNotNull(createdPost.getId());
         Assert.assertEquals(createdPost.getTitle(), newPost.getTitle());
@@ -48,13 +44,7 @@ public class PlaceholderAPIPostsTest extends BaseTest {
         updatedPost.setBody("Updated body content");
         updatedPost.setUserId(1);
 
-        Post responsePost = RestAssured.given(requestSpec)
-                .body(updatedPost)
-                .when()
-                .put("/posts/1")
-                .then()
-                .statusCode(200)
-                .extract().as(Post.class);
+        Post responsePost = postsClient.updatePost(1, updatedPost);
 
         Assert.assertEquals(responsePost.getTitle(), updatedPost.getTitle());
         Assert.assertEquals(responsePost.getBody(), updatedPost.getBody());
@@ -62,21 +52,11 @@ public class PlaceholderAPIPostsTest extends BaseTest {
 
     @Test(groups = "regression")
     public void testDeletePost() {
-        RestAssured.given(requestSpec)
-                .when()
-                .delete("/posts/1")
-                .then()
-                .statusCode(200);
+        postsClient.deletePost(1);
 
-        // Повторно запрашиваем ресурс, ожидая, что он все еще доступен, так как это фейковое API
-        int statusCode = RestAssured.given(requestSpec)
-                .when()
-                .get("/posts/1")
-                .statusCode();
-
-        // Проверяем, что ресурс все еще существует, так как API не удаляет реальные данные
-        Assert.assertEquals(statusCode, 200, "Ресурс все еще доступен, так как API не удаляет данные по-настоящему.");
+        // Since JSONPlaceholder doesn't actually delete data, we don't check for resource unavailability
+        // but we can check that the DELETE request returned status 200
+        Post post = postsClient.getPostById(1);
+        Assert.assertNotNull(post, "The resource is still available, because the API doesn't actually delete the data.");
     }
 }
-
-
